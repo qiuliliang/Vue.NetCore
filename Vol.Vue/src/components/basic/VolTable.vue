@@ -4,13 +4,15 @@
       <div class="mask" v-show="loading"></div>
       <div class="message" v-show="loading">加载中.....</div>
       <el-table
+        @selection-change="selectionChange"
         @row-click="beginEdit"
         @cell-mouse-leave="endEdit"
         ref="table"
         class="v-table"
         @sort-change="sortChange"
         tooltip-effect="dark"
-        :height="height"
+        :height="realHeight"
+        :max-height="realMaxHeight"
         :data="url?rowData:tableData"
         border
         :row-class-name="initIndex"
@@ -19,6 +21,11 @@
         <!-- @row-click="rowClick" -->
         <!-- <el-table-column type="index"  :index="initIndex"></el-table-column> -->
         <el-table-column type="selection" width="55"></el-table-column>
+        <!-- <el-table-column label="选择" width="50" align="center">
+          <template scope="scope">
+            <el-radio class="radio" v-model="radio" :label="scope.$index">&nbsp;</el-radio>
+          </template>
+        </el-table-column>-->
         <el-table-column
           v-for="(column,cindex) in filterColumns()"
           :key="cindex"
@@ -36,6 +43,7 @@
               <!-- <div @mouseover="endEdit" v-if="edit.rowIndex!=scope.$index"> -->
               <div v-if="edit.rowIndex!=scope.$index">{{formatter(scope.row,column,true)}}</div>
               <DatePicker
+                :transfer="true"
                 v-else-if="column.edit.type=='date'||column.edit.type=='datetime'"
                 :type="column.edit.type"
                 :format="column.edit.type=='date'? 'yyyy-MM-dd':'yyyy-MM-dd HH:mm:ss'"
@@ -56,6 +64,7 @@
                如果value是字符串数字则使用 :true-value="1" :false-value="0"
               -->
               <Select
+                :transfer="true"
                 v-else-if="column.edit.type=='select'"
                 v-model="scope.row[column.field]"
                 :placeholder="'请选择'+column.title"
@@ -83,18 +92,32 @@
                 v-text="scope.row[column.field]"
               ></a>
               <img
+                v-else-if="column.type=='img'"
+                v-for="(file,vIndex ) in  getFilePath(scope.row[column.field])"
+                :key="vIndex"
                 :onerror="defaultImg"
                 @click="viewImg(scope.row,column)"
                 class="table-img"
-                v-else-if="column.type=='img'"
-                :src="scope.row[column.field]"
+                :src="file.path"
               />
+              <a
+                style="margin-right: 15px;"
+                v-else-if="column.type=='file'||column.type=='excel'"
+                class="t-file"
+                v-for="(file,vIndex ) in  getFilePath(scope.row[column.field])"
+                :key="vIndex"
+                @click="dowloadFile(file)"
+              >{{file.name}}</a>
               <Tag v-else-if="column.type=='date'">{{formatterDate(scope.row,column)}}</Tag>
               <div
                 v-else-if="column.formatter"
                 @click="formatterClick(scope.row,column)"
-                v-html="column.formatter(scope.row,column)"
+                v-html="column.formatter&&column.formatter(scope.row,column)"
               ></div>
+              <div
+                v-else-if="column.click"
+                @click="formatterClick(scope.row,column)"
+              >{{scope.row[column.field]}}</div>
               <Tag
                 v-else-if="(column.bind)"
                 :color="getColor(scope.row,column)"
@@ -144,7 +167,11 @@ export default {
     },
     height: {
       type: Number,
-      default: 300
+      default: 0
+    },
+    maxHeight: {
+      type: Number,
+      default: 0
     },
     linkView: {
       type: Function,
@@ -164,7 +191,7 @@ export default {
     },
     paginationHide: {
       type: Boolean,
-      default: false
+      default: true
     },
     color: {
       type: Boolean,
@@ -184,11 +211,22 @@ export default {
       //传入了url，是否默认加载表格数据
       type: Boolean,
       default: true
+    },
+    loadKey: {
+      //是否自动从后台加载数据源,如【审核状态】字段是的值是数字，但要显示对应的文字，1=审核中，2=审核通过
+      type: Boolean,
+      default: false
+    },
+    single: {
+      type: Boolean, //是否单选
+      default: false
     }
   },
   data() {
     return {
       key: "",
+      realHeight: 0,
+      realMaxHeight: 0,
       enableEdit: false, //是否启表格用编辑功能
       empty: this.allowEmpty ? "" : "--",
       defaultImg: 'this.src="' + require("@/assets/imgs/error.png") + '"',
@@ -214,6 +252,11 @@ export default {
         "#FFA2D3",
         "default"
       ],
+      rule: {
+        phone: /^[1][3,4,5,6,7,8,9][0-9]{9}$/,
+        decimal: /(^[\-0-9][0-9]*(.[0-9]+)?)$/,
+        number: /(^[\-0-9][0-9]*([0-9]+)?)$/
+      },
       columnNames: [],
       rowData: [],
       paginations: {
@@ -226,11 +269,37 @@ export default {
         page: 1,
         rows: 30
       },
+      errorFiled: "",
       edit: { columnIndex: -1, rowIndex: -1 }, //当前双击编辑的行与列坐标
       editStatus: {}
     };
   },
   created() {
+    this.realHeight = this.getHeight();
+    this.realMaxHeight = this.getMaxHeight();
+    if (this.loadKey) {
+      //从后台加下拉框的[是否启用的]数据源
+      let keys = [];
+      let columnBind = [];
+      this.columns.forEach(x => {
+        if (x.bind && x.bind.key && (!x.bind.data || x.bind.data.length == 0)) {
+          keys.push(x.bind.key);
+          if (!x.bind.data) x.bind.data = [];
+          columnBind.push(x.bind);
+        }
+      });
+      if (keys.length == 0) return;
+      this.http.post("/api/Sys_Dictionary/GetVueDictionary", keys).then(dic => {
+        dic.forEach(x => {
+          columnBind.forEach(c => {
+            if (c.key == x.dicNo) {
+              c.data.push(...x.data);
+            }
+          });
+        });
+      });
+    }
+
     this.paginations.sort = this.pagination.sortName;
     this.enableEdit = this.columns.some(x => {
       return x.hasOwnProperty("edit");
@@ -247,14 +316,86 @@ export default {
     this.defaultLoadPage && this.load();
   },
   methods: {
+    dowloadFile(file) {
+      this.base.dowloadFile(
+        file.path,
+        file.name,
+        {
+          Authorization: this.$store.getters.getToken()
+        },
+        this.http.ipAddress
+      );
+    },
+    getFilePath(pathSring) {
+      //获取表的图片与文件显示
+      if (!pathSring) return "";
+      let filePath = pathSring.replace(/\\/g, "/").split(",");
+      let fileInfo = [];
+      for (let index = 0; index < filePath.length; index++) {
+        let file = filePath[index];
+        if (file.indexOf(".") != -1) {
+          let splitFile = file.split("/");
+          if (splitFile.length > 0) {
+            fileInfo.push({
+              name: splitFile[splitFile.length - 1],
+              path: this.base.isUrl(file) ? file : this.http.ipAddress + file
+            });
+          }
+        }
+      }
+      return fileInfo;
+    },
+    //重置table
+    reset() {
+      if (this.tableData && this.tableData.length > 0) {
+        this.tableData.splice(0);
+      }
+      if (this.rowData && this.rowData.length > 0) {
+        this.rowData.splice(0);
+      }
+      if (!this.paginationHide) {
+        this.paginations.page = 1;
+        this.paginations.rows = 30;
+        if (this.paginations.wheres && this.paginations.wheres.length > 0) {
+          this.paginations.wheres.splice(0);
+        }
+      }
+      this.errorFiled = "";
+      this.edit.columnIndex = -1;
+      this.edit.rowIndex = -1;
+    },
+    getHeight() {
+      //没有定义高度与最大高度，使用table默认值
+      if (!this.height && !this.maxHeight) {
+        return null;
+      }
+      //定义了最大高度则不使用高度
+      if (this.maxHeight) {
+        return null;
+      }
+      //使用当前定义的高度
+      return this.height;
+    },
+    getMaxHeight() {
+      //没有定义高度与最大高度，使用table默认值
+      if (!this.height && !this.maxHeight) {
+        return null;
+      }
+      //定义了最大高度使用最大高度
+      if (this.maxHeight) {
+        return this.maxHeight;
+      }
+      //不使用最大高度
+      return null;
+    },
     getSelectedOptions(column) {
       if (column.bind && column.bind.data && column.bind.data.length > 0) {
         return column.bind.data;
       }
       return [];
     },
-    formatterClick(row, column) {
-      column.click && column.click.call(this, row, column);
+    formatterClick(row, column, event) {
+      column.click && column.click(row, column, event);
     },
     initIndex(obj) {
       if (this.index) {
@@ -271,6 +412,9 @@ export default {
       });
     },
     beginEdit(row, column, event) {
+      if (this.edit.rowIndex != -1) {
+        return;
+      }
       if (!this.enableEdit) return;
       if (row.hasOwnProperty("elementIdex")) {
         if (this.edit.rowIndex == row.elementIdex) {
@@ -283,19 +427,131 @@ export default {
     // //  this.edit.rowIndex = scopeIndex;
     //   //this.edit.columnIndex=cindex;
     // },
-    endEdit() {
-      if (!this.enableEdit) return;
+    validateColum(option, data) {
+      if (option.hidden || option.bind) return true;
+      let val = data[option.field];
+      if (option.require || option.required) {
+        if (val != "0" && (val == "" || val == undefined)) {
+          if (!this.errorFiled) {
+            //  event.focus();
+            this.$Message.error(option.title + "不能为空");
+          }
+          return false;
+        }
+      }
+      let editType = option.edit.type;
+      //验证数字
+      if (editType == "int" || editType == "decimal" || editType == "number") {
+        if (val == "" || val == undefined) return true;
+        if (editType == "decimal") {
+          if (!this.rule.decimal.test(val)) {
+            this.$Message.error(option.title + "只能是数字");
+            return false;
+          }
+        } else if (!this.rule.decimal.test(val)) {
+          this.$Message.error(option.title + "只能是整数");
+          return false;
+        }
+        if (
+          option.edit.min != undefined &&
+          typeof option.edit.min == "number" &&
+          val < option.edit.min
+        ) {
+          this.$Message.error(option.title + "不能小于" + option.edit.min);
+          return false;
+        }
+        if (
+          option.edit.max != undefined &&
+          typeof option.edit.max == "number" &&
+          val > option.edit.max
+        ) {
+          this.$Message.error(option.title + "不能大于" + option.edit.min);
+          return false;
+        }
+        return true;
+      }
+
+      //验证字符串
+      if (val && (editType == "text" || editType == "string")) {
+        if (
+          option.edit.min != undefined &&
+          typeof option.edit.min == "number" &&
+          val.length < option.edit.min
+        ) {
+          this.$Message.error(
+            option.title + "至少" + option.edit.min + "个字符"
+          );
+          return false;
+        }
+        if (
+          option.edit.max != undefined &&
+          typeof option.edit.max == "number" &&
+          val.length > option.edit.max
+        ) {
+          this.$Message.error(
+            option.title + "最多" + option.edit.max + "个字符"
+          );
+          return false;
+        }
+        return true;
+      }
+      return true;
+    },
+    endEdit(row, column, event) {
+      //   select datetime设置  :transfer="true"后，结束编辑需要鼠标移至另一行或同一行编辑列自动结束编辑
+      if (!this.enableEdit) {
+        if (!this.errorFiled) {
+          this.edit.rowIndex = -1;
+        }
+        return;
+      }
+      if (
+        this.edit.rowIndex != -1 &&
+        (!this.errorFiled || this.errorFiled == column.property)
+      ) {
+        let data = (this.url ? this.rowData : this.tableData)[
+          this.edit.rowIndex
+        ];
+        let option = this.columns.find(x => {
+          return x.field == column.property;
+        });
+        if (!option || !option.edit) {
+          return;
+        }
+        if (
+          option.edit.type == "datetime" ||
+          option.edit.type == "date" ||
+          option.edit.type == "select"
+        ) {
+          if (this.edit.rowIndex == row.elementIdex) {
+            return;
+          }
+        }
+        if (!this.validateColum(option, data)) {
+          this.errorFiled = option.field;
+          return false;
+        } else {
+          this.errorFiled = "";
+        }
+      }
+      if (this.errorFiled) {
+        return;
+      }
+      //  this.errorFiled = "";
       this.edit.rowIndex = -1;
+
       //this.edit.columnIndex=-1;
     },
     delRow() {
       let rows = this.getSelected();
-      if (rows.length == 0) return this.$message.error("请选择要删除的行!");
+      if (rows.length == 0) return this.$Message.error("请选择要删除的行!");
 
       let data = this.url ? this.rowData : this.tableData;
       let indexArr = this.getSelectedIndex();
       if (indexArr.length == 0) {
-        return this.$message.error("删除操作必须设置VolTable的属性index='true'")
+        return this.$Message.error(
+          "删除操作必须设置VolTable的属性index='true'"
+        );
       }
       // if (indexArr.length == 0 || !this.key) {
       //   return this.$message.error(
@@ -317,10 +573,24 @@ export default {
           }
         }
       }
-
+      this.edit.rowIndex = -1;
       return rows;
     },
     addRow(row) {
+      if (!row) {
+        row = {};
+      }
+      this.columns.forEach(x => {
+        if (x.edit && x.edit.type == "switch") {
+          if (!row.hasOwnProperty(x.field)) {
+            row[x.field] = 0;
+          }
+        }
+      });
+      if (!this.url) {
+        this.tableData.push(row);
+        return;
+      }
       this.rowData.push(row);
     },
     viewImg(row, column) {
@@ -342,8 +612,12 @@ export default {
       });
       return indexArr ? indexArr : [];
     },
-    load(query) {
+    load(query, isResetPage) {
+      //isResetPage重置分页数据
       if (!this.url) return;
+      if (isResetPage) {
+        this.resetPage();
+      }
       let param = {
         page: this.paginations.page,
         rows: this.paginations.rows,
@@ -399,8 +673,16 @@ export default {
       this.paginations.order = sort.order == "ascending" ? "asc" : "desc";
       this.load();
     },
-    handleSelectionChange(row) {
-      this.$refs.table.toggleRowSelection(row);
+    resetPage() {
+      //重置查询分页
+      this.paginations.rows = 30;
+      this.paginations.page = 1;
+    },
+    selectionChange(selection) {
+      // console.log(selection);
+      if (this.single && selection.length > 1) {
+        this.$refs.table.toggleRowSelection(selection[0]);
+      }
     },
     getColor(row, column) {
       let val = row[column.field];
@@ -408,7 +690,12 @@ export default {
       // if (val == "" || val == null || val == undefined) {
       //  return "none";
       // }
-
+      if (column.getColor && typeof column.getColor == "function") {
+        let _color = column.getColor(row, column);
+        if (_color) {
+          return _color;
+        }
+      }
       if (!val && val != "0") {
         return this.defaultColor;
       }
@@ -523,6 +810,8 @@ export default {
 }
 .vol-table .table-img {
   height: 70px;
+  border-radius: 5px;
+  margin-right: 10px;
 }
 .vol-table .table-img:hover {
   cursor: pointer;

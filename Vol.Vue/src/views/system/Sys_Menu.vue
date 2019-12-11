@@ -3,7 +3,7 @@
     <vol-box :width="940" :mask="true" :height="500" title="图标列表" :model.sync="model">
       <Icons :onSelect="onSelect"></Icons>
     </vol-box>
-    <vol-box :width="500" :mask="true" :height="150" title="其他权限" :model.sync="actionModel">
+    <vol-box :width="600" :mask="true" :height="270" title="其他权限" :model.sync="actionModel">
       <vol-form ref="actionForm" :formRules="actionOptions" :formFileds="actionFields">
         <div slot="header">
           <Alert show-icon>
@@ -62,7 +62,7 @@
                       @click="removeIcon"
                       class="remove ivu-icon ivu-icon-md-remove-circle"
                     ></i>
-                    <i style="margin-right: 15px;font-size: 32px;" :class="[icon]"></i>
+                    <i style="margin-right: 15px;font-size: 32px;" :class="['ivu-icon ivu-icon-'+icon]"></i>
                   </span>
                   <Button @click="model=true" type="dashed">选择图标</Button>
                 </div>
@@ -186,6 +186,8 @@ export default {
           });
           return;
         }
+        this.fields.menu_Id = x.data.menu_Id;
+        this.fields.createDate = x.data.createDate;
         this.tree.push({
           id: x.data.menu_Id,
           name: this.fields.menuName,
@@ -211,7 +213,7 @@ export default {
     },
     onOpenChange(node) {
       if (node.length == 0) return;
-      this.getTreeItem(node[0]);
+      this.getTreeItem(node[node.length > 1 ? node.length - 1 : 0]);
     },
     menuSelect(node) {
       this.getTreeItem(node);
@@ -273,15 +275,16 @@ export default {
             title: "菜单ID",
             field: "menu_Id",
             readonly: true,
-            displayType: "text",
-            columnType: "int",
+            type: "number",
+            min: 0,
             disabled: true
           },
           {
-            columnType: "int",
             title: "父级ID",
             required: true,
-            field: "parentId",
+            type: "number",
+            min: 0,
+            field: "parentId"
             // min: 0, max: 50
           }
         ],
@@ -311,9 +314,8 @@ export default {
           {
             title: "排序号",
             field: "orderNo",
-            dataType: "string",
-            displayType: "int",
-            columnType: "int",
+            type: "number",
+            min: 0,
             required: true
           }
         ],

@@ -57,12 +57,13 @@
       </div>
       <div class="vol-main" id="vol-main">
         <el-scrollbar style="height:100%;">
-          <!-- <transition name="fade" mode="in-out"> -->
-          <!-- <transition > -->
+          <!-- <transition name="fade" mode="in-out">  -->
+          <transition  enter-active-class="animated fadeInLeftBig">
+            
           <keep-alive>
             <router-view></router-view>
-           </keep-alive>
-          <!-- </transition> -->
+          </keep-alive>
+           </transition>
         </el-scrollbar>
       </div>
     </div>
@@ -84,7 +85,7 @@ export default {
       theme: "dark",
       links: [
         { text: "框架文档", path: "/document", id: -2 },
-        { text: "帮助", path: "#", id: -3 },
+        { text: "GitHub", path: "#", id: -3 },
         { text: "个人中心", path: "/UserInfo", id: -1 },
         { text: "安全退出", path: "/login", id: -4 }
       ],
@@ -118,8 +119,16 @@ export default {
       type: "get",
       async: false
     });
+
     //当前刷新是不是首页
     if (this.$route.path != this.navigation[0].path) {
+      let linkNow = this.links.find(x => {
+        return x.path == this.$route.path;
+      });
+      if (linkNow) {
+        this.selectId = linkNow.id;
+        return;
+      }
       let item = this.menuOptions.find(x => {
         return x.path == this.$route.path;
       });
@@ -131,7 +140,10 @@ export default {
   },
   methods: {
     to(item) {
-      if (item.path == "#") return;
+      if (item.path == "#") {
+        window.open("https://github.com/cq-panda/Vue.NetCore");
+        return;
+      }
 
       var hasId = this.navigation.find(function(x) {
         return x.id == item.id;
@@ -293,7 +305,7 @@ body {
   min-width: 190px;
 }
 .vol-aside .header {
-      text-align: center;
+  text-align: center;
   position: absolute;
   height: 60px;
   width: 199px;
@@ -347,7 +359,7 @@ body {
   width: 100%;
   position: relative;
   /* line-height: 60px; */
-  background-color: #03535e;
+  background-color:#272929;
 }
 .vol-main {
   position: absolute;
@@ -417,6 +429,8 @@ body {
   cursor: pointer;
 }
 .header-navigation {
+      box-shadow: 0px 0px 4px #888888;
+      border-bottom: 1px solid #eee;
   height: 32px;
   overflow: hidden;
   line-height: 32px;
@@ -459,7 +473,7 @@ body {
 .vol-header .user span:first-child {
   font-size: 15px;
   font-weight: bolder;
-  letter-spacing: 3px;
+  /* letter-spacing: 3px; */
 }
 
 .h-link ul {
@@ -514,11 +528,45 @@ img:not([src]) {
 }
 
 .ivu-select-dropdown::-webkit-scrollbar {
-    width: 6px;
-    height: 14px;
+  width: 6px;
+  height: 14px;
 }
 .ivu-select-dropdown::-webkit-scrollbar-thumb {
-    border-radius: 5px;
-    background: #DADAC9;
+  border-radius: 5px;
+  background: #dadac9;
+}
+ .animated {
+    -webkit-animation-duration:1s;
+    animation-duration:1s;
+    -webkit-animation-fill-mode:both;
+    animation-fill-mode:both
+}
+@-webkit-keyframes fadeInLeftBig {
+    0% {
+        opacity:0;
+        -webkit-transform:translate3d(-50px, 0, 0);
+        transform:translate3d(-50px, 0, 0)
+    }
+    to {
+        opacity:1;
+        -webkit-transform:none;
+        transform:none
+    }
+}
+@keyframes fadeInLeftBig {
+    0% {
+        opacity:0;
+        -webkit-transform:translate3d(-50px, 0, 0);
+        transform:translate3d(-50px, 0, 0)
+    }
+    to {
+        opacity:1;
+        -webkit-transform:none;
+        transform:none
+    }
+}
+.fadeInLeftBig {
+    -webkit-animation-name:fadeInLeftBig;
+    animation-name:fadeInLeftBig
 }
 </style>
