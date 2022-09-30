@@ -10,8 +10,12 @@
     <div class="list">
       <Alert type="success" show-icon>
         关于组件
-        <span slot="desc">所有组件都是基于iviewui组件、table表使用element-ui进行的二次封装，目前使用只需要配置好JSON格式即可使用..</span>
+        <span slot="desc" >所有组件都是基于iviewui组件、table表使用element-ui进行的二次封装，目前使用只需要配置好JSON格式即可使用..</span>
       </Alert>
+      <Alert  style="padding: 10px;" >
+          <h2>此页面需要从首页点击【框架文档】进来<a href="http://v2.volcore.xyz/login">点击登陆</a>,否则看不了下面：VolTable组件、代码生成页面ViewGrid这两个组件文档 </h2>
+      </Alert>
+
       <component v-bind:is="currentComponent"></component>
     </div>
   </div>
@@ -29,66 +33,71 @@ export default {
     volmenu: () => import("./doc_menu"),
     voltable: () => import("./doc_table"),
     viewGrid: () => import("./doc_viewGridApi"),
-    other: () => import("./doc_other")
+    volupload: () => import("./doc_volupload"),
+    other: () => import("./doc_other"),
   }, //
   methods: {
     toggleCom(index) {
       this.currentComponent = this.data[index].com_name;
       this.active = index;
-    }
+    },
   },
+  created() {},
   data() {
     return {
       active: 0,
       data: [
         {
           com_name: "Icons",
-          title: "图标组件"
+          title: "图标组件",
         },
         {
           com_name: "box",
-          title: "弹出框组件"
+          title: "弹出框组件",
         },
         {
           com_name: "DocForm",
-          title: "VolForm表单组件"
+          title: "VolForm表单组件",
         }, //
         {
           com_name: "VolHeader",
-          title: "VolHeader"
+          title: "VolHeader",
         },
         {
           com_name: "voltable",
-          title: "VolTable组件"
+          title: "VolTable组件",
         },
         {
           com_name: "viewGrid",
-          title: "代码生成后页面viewGrid"
+          title: "代码生成页面ViewGrid",
         },
         {
-          com_name: "volmenu",
-          title: "菜单组件"
+          com_name: "volupload",
+          title: "volupload上传组件",
         },
-        {
-          com_name: "uploadExcel",
-          title: "excel上传"
-        },
-        {
-          com_name: "uploadImg",
-          title: "图片上传"
-        },
-        {
-          com_name: "other",
-          title: "其它组件"
-        }
+        // {
+        //   com_name: "volmenu",
+        //   title: "菜单组件"
+        // },
+        // {
+        //   com_name: "uploadExcel",
+        //   title: "excel上传"
+        // },
+        // {
+        //   com_name: "uploadImg",
+        //   title: "图片上传"
+        // },
+        // {
+        //   com_name: "other",
+        //   title: "其它组件"
+        // }
       ],
-      currentComponent: "Icons"
+      currentComponent: "Icons",
     };
-  }
+  },
 };
 </script>
 <style>
-
 </style>
 <style lang="less" scoped>
 .i-container {
@@ -99,7 +108,7 @@ export default {
     width: 180px;
     position: fixed;
     .n-item {
-      text-align: right;
+      text-align: left;
       padding-right: 15px;
       list-style: none;
       a {
