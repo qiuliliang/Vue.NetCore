@@ -157,10 +157,12 @@
           <!-- 2020.09.13增加formFileds拼写错误兼容处理 -->
           <vol-form
             ref="searchForm"
+            :load-key="false"
             style="padding: 0 15px"
             :label-width="labelWidth"
             :formRules="searchFormOptions"
             :formFields="searchFormFields"
+            :select2Count="select2Count"
           >
             <template #footer>
               <div v-if="!fiexdSearchForm" class="form-closex">
@@ -292,6 +294,7 @@
                   :label-width="boxOptions.labelWidth"
                   :formRules="editFormOptions"
                   :formFields="editFormFields"
+                  :select2Count="select2Count"
                 ></vol-form>
               </div>
               <!--明细body自定义组件-->
@@ -333,7 +336,7 @@
                   @rowClick="detailRowOnClick"
                   :url="detailOptions.url"
                   :load-key="false"
-                  :index="detailOptions.edit"
+                  :index="true"
                   :tableData="detailOptions.data"
                   :columns="detailOptions.columns"
                   :pagination="detailOptions.pagination"
@@ -341,7 +344,6 @@
                   :single="detailOptions.single"
                   :pagination-hide="false"
                   :defaultLoadPage="detailOptions.load"
-                  :doubleEdit="detailOptions.doubleEdit"
                   :beginEdit="detailOptions.beginEdit"
                   :endEditBefore="detailOptions.endEditBefore"
                   :endEditAfter="detailOptions.endEditAfter"
@@ -350,6 +352,7 @@
                   :column-index="detailOptions.columnIndex"
                   :ck="detailOptions.ck"
                   :text-inline="detailOptions.textInline"
+                  :select2Count="select2Count"
                 ></vol-table>
               </div>
               <!--明细footer自定义组件-->
@@ -445,6 +448,7 @@
           :column-index="columnIndex"
           :text-inline="textInline"
           :ck="ck"
+          :select2Count="select2Count"
         ></vol-table>
       </div>
     </div>
@@ -656,7 +660,8 @@ var vueParam = {
       },
       numberFields: [],
       //2022.09.26增加自定义导出文件名
-      downloadFileName: null
+      downloadFileName: null,
+      select2Count: 500 //超出500数量显示select2组件
     };
   },
   methods: {},

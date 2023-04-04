@@ -441,6 +441,11 @@ let methods = {
       this.$refs.detail.reset();
     }
     this.resetForm('form', sourceObj);
+    if (this.$refs.form && this.$refs.form.$refs.volform) {
+     setTimeout(() => {
+      this.$refs.form.$refs.volform.clearValidate();
+     }, 100);
+    }
   },
   getKeyValueType(formData, isEditForm) {
     try {
@@ -517,7 +522,7 @@ let methods = {
             });
             if (treeDic && treeDic.orginData && treeDic.orginData.length) {
               if (typeof treeDic.orginData[0].id == 'number') {
-                newVal = ~~newVal;
+                newVal = newVal * 1 || 0;
               } else {
                 newVal = newVal + '';
               }
@@ -610,7 +615,7 @@ let methods = {
       } else if (typeof this.editFormFields[key] == 'function') {
         try {
           editFormFields[key] = this.editFormFields[key]();
-        } catch (error) {}
+        } catch (error) { }
       } else {
         //2021.05.30修复下拉框清除数据后后台不能保存的问题
         if (
@@ -967,7 +972,7 @@ let methods = {
     );
     let elink = this.$refs.export;
     xmlResquest.responseType = 'blob';
-    xmlResquest.onload = function(oEvent) {
+    xmlResquest.onload = function (oEvent) {
       if (xmlResquest.status != 200) {
         this.$error('下载文件出错了..');
         return;
@@ -1078,6 +1083,10 @@ let methods = {
     this.auditParam.model = true;
   },
   saveAudit() {
+    if (this.auditParam.status == -1 && this.auditParam.value == -1) {
+      this.$message.error('请选择审批状态');
+      return;
+    }
     //保存审核
     let keys = [this.editFormFields[this.table.key]];
     if (!this.auditBefore(keys, this.currentRow)) {
@@ -1184,7 +1193,8 @@ let methods = {
             d,
             this.dicKeys.filter((f) => {
               return f.dicNo == d.dataKey;
-            })[0]
+            })[0],
+            { type: d.type }
           );
         }
       });
@@ -1226,6 +1236,18 @@ let methods = {
     //绑定下拉框的数据源
     //绑定后台的字典数据
     dic.forEach((d) => {
+      if (d.data.length >= (this.select2Count || 500)) {
+        if (
+          !this.dicKeys.some((x) => {
+            return x.dicNo == d.dicNo && x.type == 'cascader';
+          })
+        ) {
+          d.data.forEach((item) => {
+            item.label = item.value;
+            item.value = item.key;
+          });
+        }
+      }
       this.dicKeys.forEach((x) => {
         if (x.dicNo != d.dicNo) return true;
         //2020.10.26增加级联数据源绑定处理
@@ -1492,7 +1514,7 @@ let methods = {
     }
     if (refreshBtn) {
       refreshBtn.name = '重 置';
-      refreshBtn.onClick = function() {
+      refreshBtn.onClick = function () {
         this.resetSearch();
       };
     }
@@ -1599,9 +1621,8 @@ let methods = {
   },
   getWorkFlowSteps(row) {
     let table = this.table.url.replaceAll('/', '');
-    let url = `api/Sys_WorkFlow/getSteps?tableName=${table}&id=${
-      row[this.table.key]
-    }`;
+    let url = `api/Sys_WorkFlow/getSteps?tableName=${table}&id=${row[this.table.key]
+      }`;
     this.http.get(url, {}, true).then((result) => {
       this.workFlowSteps.splice(0);
       //有可能没有配置审批流程

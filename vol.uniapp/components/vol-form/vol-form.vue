@@ -4,19 +4,40 @@
 		<view :style="{padding:padding+'rpx',display:item.hidden?'none':''}"
 			:class="[labelPosition=='left'?'left-form-item':'top-form-item',item.type=='group'?'f-form-group':'']"
 			class="f-form-item" v-for="(item,index) in formOptions" :key="index">
-			<view class="f-form-label" v-if="item.type!='group'" :style="{width:labelWidth+'px'}">
+			<view class="f-form-label" v-if="item.type!='group'" :style="{maxWidth:labelWidth+'px'}">
 				<text class="f-form-label-required" v-if="item.require||item.required">*</text>
 				<text>{{item.title}}</text>
 			</view>
 			<view v-if="item.readonly" style="flex: 1;font-size: 15px;text-align: right;">
 				<view v-if="item.type=='img'" class="readonly-imgs">
-					<image v-for="(src,imgIndex) in getImgSrcs(item)" :key="imgIndex" :src="src"></image>
+					<image v-for="(src,imgIndex) in getImgSrcs(item)" :key="imgIndex" :src="src.url"></image>
 				</view>
 				<text v-else> {{formatReadonlyValue(item)}}</text>
 			</view>
+			<view v-else-if="item.type=='editor'">
+				<u-parse :content="inFormFields[item.field]"></u-parse>
+			</view>
+			
+			
+			<view class="f-form-content f-form-content-select" @click="showCitySheet(item)"
+				v-else-if="item.type=='city'">
+				<view style="flex:1;">
+					<view style="color:rgb(192 196 204);font-size:15px;padding-right: 12rpx;"
+						v-show="base.isEmpty(inFormFields[item.field],true)">
+						{{'请选择'+item.title}}
+					</view>
+					<view style="font-size:15px;" v-show="!base.isEmpty(inFormFields[item.field],true)">
+						{{inFormFields[item.field].replaceAll(',','')}}
+					</view>
+				</view>
+				<u-icon color="rgb(186 186 186)" size="15" name="arrow-right"></u-icon>
+			</view>
+			
 			<template v-else-if="item.type=='date'||item.type=='datetime'">
 				<template v-if="item.range">
-					<view class="f-form-content f-form-content-select" @click="showPicker(item,0)">
+					<view style="flex: 1;" :style="{'max-width': item.type=='date'?'120rpx':'30rpx'}"></view>
+					<view class="f-form-content f-form-content-select" style="text-align: left;"
+						@click="showPicker(item,0)">
 						<view style="color:rgb(192 196 204);font-size:15px;" v-show="!inFormFields[item.field][0]">
 							开始时间
 						</view>
@@ -42,22 +63,42 @@
 					</view>
 				</template>
 				<view v-else class="f-form-content f-form-content-select" @click="showPicker(item)">
-					<view style="color:rgb(192 196 204);font-size:15px;width: 100%;padding-right: 10rpx;" v-show="!inFormFields[item.field]">
+					<view style="color:rgb(192 196 204);font-size:15px;width: 100%;padding-right: 10rpx;"
+						v-show="!inFormFields[item.field]">
 						{{'请选择'+item.title}}
 					</view>
 					<view style="flex:1;">
-						<view style="font-size:15px;padding-right: 10rpx;">
+						<view style="font-size:15px;padding-right: 12rpx;">
 							{{item.type=='date'?(inFormFields[item.field]||'').substr(0,10):inFormFields[item.field]}}
 						</view>
 					</view>
-					<u-icon color="rgb(164 165 165)" name="arrow-right"></u-icon>
+					<u-icon color="rgb(186 186 186)" size="15" name="arrow-right"></u-icon>
+				</view>
+			</template>
+
+			<template v-else-if="item.range">
+				<view style="flex: 1;max-width: 120rpx;"></view>
+				<view class="f-form-content f-form-content-select" style="text-align: left;">
+					<view style="flex:1;">
+						<view style="font-size:15px;">
+							<input placeholder-style="color:rgb(192 196 204);font-size:15px;" type="number"
+								v-model="inFormFields[item.field][0]" border="none" :ref="item.field"
+								:placeholder="item.placeholder||('请输入'+item.title)"></input>
+						</view>
+					</view>
+				</view>
+				<text style="margin:0 0rpx;">-</text>
+				<view class="f-form-content f-form-content-select">
+					<input placeholder-style="color:rgb(192 196 204);font-size:15px;" type="number"
+						v-model="inFormFields[item.field][1]" border="none" :ref="item.field"
+						:placeholder="item.placeholder||('请输入'+item.title)"></input>
 				</view>
 			</template>
 
 			<view class="f-form-content f-form-content-select" @click="showActionSheet(item)"
 				v-else-if="['select','selectList','checkbox','radio','cascader'].indexOf(item.type)!=-1">
 				<view style="flex:1;">
-					<view style="color:rgb(192 196 204);font-size:15px;"
+					<view style="color:rgb(192 196 204);font-size:15px;padding-right: 12rpx;"
 						v-show="base.isEmpty(inFormFields[item.field],true)">
 						{{'请选择'+item.title}}
 					</view>
@@ -65,9 +106,11 @@
 						{{formatDicValue(item)}}
 					</view>
 				</view>
-				<u-icon name="arrow-right"></u-icon>
+				<u-icon color="rgb(186 186 186)" size="15" name="arrow-right"></u-icon>
 			</view>
-			<view class="f-form-group-content" v-else-if="item.type=='group'">
+
+
+			<view class="f-form-group-content" :style="item.style" v-else-if="item.type=='group'">
 				{{item.title||''}}
 			</view>
 
@@ -106,13 +149,15 @@
 			</view>
 			<view class="f-form-content" v-else>
 				<input :focus="item.focus" placeholder-style="color:rgb(192 196 204);font-size:15px;" type="text"
-					v-model="inFormFields[item.field]" border="none" :ref="item.field"
-					:placeholder="item.placeholder||('请输入'+item.title)"></input>
+					@confirm="(e)=>{inputConfirm(item.field,e)}" v-model="inFormFields[item.field]" border="none"
+					:ref="item.field" :placeholder="item.placeholder||('请输入'+item.title)"></input>
 			</view>
-			<view v-if="item.extra" @click="extraClick(item,inFormFields)">
-				<u-icon v-if="item.extra.icon" :name="item.extra.icon" :color="item.extra.clor||'#ffff'" size="20">
+			<view v-if="item.extra" :style="item.extra.style" style="display: flex;"
+				@click="extraClick(item,inFormFields)">
+				<u-icon v-if="item.extra.icon" :name="item.extra.icon" :color="item.extra.color"
+					:size="item.extra.size">
 				</u-icon>
-				<text :style="item.extra.style">{{item.extra.text}}</text>
+				<text>{{item.extra.text}}</text>
 			</view>
 		</view>
 		<slot></slot>
@@ -124,20 +169,25 @@
 		<!--  下拉框 -->
 		<u-popup @touchmove.prevent class="form-popup" :zIndex="999999" :show="actionSheetModel"
 			@close="actionSheetModel=false;">
-			<view class="vol-action-sheet-select-container" :style="{'max-height':(maxHeight+'px')}">
+			<view class="vol-action-sheet-select-container" :style="{'height':(popupHeight+'px')}">
 				<view class="vol-action-sheet-select-title">请选择{{actionSheetCurrentItem.title}}
 					<text class="vol-action-sheet-select-confirm" @click="actionConfirmClick">确定</text>
 				</view>
 				<!-- 	超过10个下拉框选项默认开启搜索 -->
-				<view class="vol-action-sheet-select-filter"
-					v-show="actionSheetCurrentItem.data&&actionSheetCurrentItem.data.length>=10">
-					<view style="padding-left:20rpx;flex:1;font-size: 22px;color: #909399;background: white;">
+				<!-- 	 -->
+				<view v-if="showFilter" class="vol-action-sheet-select-filter">
+					<u-search @custom="searchText=''" placeholder="请输入关键字搜索" :showAction="true" actionText="清除"
+						:animation="false" v-model="searchText">
+					</u-search>
+					<!-- @search="search" @custom="searchClick" -->
+					<!-- 	<view style="padding-left:20rpx;flex:1;font-size: 22px;color: #909399;background: white;">
 						<u--input placeholder="请输入关键字搜索" v-model="searchText">
 						</u--input>
 					</view>
 					<view class="search-btn">
-						<u-button type="primary" icon="trash" @click="searchText=''" size="small">清除</u-button>
-					</view>
+						<u-button :plain="true" :hairline="true" :customStyle="{padding:'10rpx 20rpx'}" shape="circle"
+							type="primary" icon="trash" @click="searchText=''" size="small">清除</u-button>
+					</view> -->
 				</view>
 				<view class="vol-action-sheet-select-content">
 					<view :class="{'vol-action-sheet-select-actived':actionSheetModel&&isActionSelected(item)}"
@@ -149,16 +199,27 @@
 				</view>
 			</view>
 		</u-popup>
+
+		<!--  树形级联组件 -->
+		<vol-tree ref="cascader" :data="actionSascaderCurrentItem.data" :title="'请选择'+actionSascaderCurrentItem.title"
+			:checkStrictly="actionSascaderCurrentItem.checkStrictly" @cancel="actionSascaderCurrentItem.cancel"
+			@confirm="cascaderConfirm">
+		</vol-tree>
+
 		<!-- 		数字键盘 -->
 		<!-- 	<u-keyboard ref="uKeyboard" @change="numberChange" @backspace="numberBackspace"
 			:dotDisabled="numberCurrentItem.type=='decimal'" :z-index='999999999' mode="number" :show="numberModel">
 		</u-keyboard> -->
-
+		<lotus-address v-on:choseVal="onCitySelect" :lotusAddressData="lotusAddressData"></lotus-address>
 	</view>
 </template>
 
 <script>
+	import lotusAddress from "./../Winglau14-lotusAddress/Winglau14-lotusAddress.vue";
 	export default {
+		components:{
+			lotusAddress
+		},
 		props: {
 			formOptions: {
 				type: Array,
@@ -178,7 +239,7 @@
 			},
 			labelWidth: {
 				type: Number,
-				default: 80
+				default: 150
 			},
 			labelPosition: {
 				type: String,
@@ -192,15 +253,35 @@
 		name: "vol-form",
 		data() {
 			return {
+				lotusAddressData: {
+					visible: false,
+					provinceName: '',
+					cityName: '',
+					townName: '',
+				},
+				cityItem: {
+					field: ""
+				},
+				region: '',
+				showFilter: false,
 				searchText: '', //搜索的内容
 				inFormFields: {},
 				inFormOptions: [],
 				maxHeight: 400,
+				popupHeight: 0,
 				pickerValue: '',
 				pickerModel: false, //日期组件
 				pickerCurrentItem: {}, //当前选项
 				pickerCurrentRangeIndex: 0,
 				actionSheetModel: false,
+				actionSascaderCurrentItem: {
+					title: "",
+					field: '',
+					checkStrictly: false, //是否只能选择最后一个节点
+					cancel: () => {},
+					confirm: () => {},
+					data: []
+				},
 				actionSheetCurrentItem: {
 					min: 633715200000,
 					max: 0
@@ -266,11 +347,14 @@
 			var _this = this;
 			uni.getSystemInfo({
 				success: function(res) {
-					_this.maxHeight = res.screenHeight * 0.75;
+					_this.maxHeight = res.screenHeight * 0.85;
 				}
 			});
 		},
 		methods: {
+			inputConfirm(field, e) {
+				this.$emit('input-confirm', field, e);
+			},
 			convertImgArr(formFields) {
 				if (!this.imgFields) {
 					return;
@@ -301,7 +385,20 @@
 				})
 				this.$emit('dicInited', result);
 			},
+			cascaderConfirm(value, parentIds) {
+				this.inFormFields[this.actionSascaderCurrentItem.field] = value;
+			},
 			showActionSheet(item) {
+				if (item.type == 'cascader') {
+					this.actionSascaderCurrentItem.field = item.field;
+					this.actionSascaderCurrentItem.data.splice(0);
+					this.actionSascaderCurrentItem.checkStrictly = item.checkStrictly || false; //是否只能选择最后一个节点
+					this.actionSascaderCurrentItem.data.push(...item.data);
+					this.$refs.cascader.show(this.inFormFields[item.field]);
+					//this.actionSascaderCurrentItem.cancel = item.cancel;
+					//this.actionSascaderCurrentItem.confirm = item.confirm;
+					return;
+				}
 				this.searchText = '';
 				this.actionSheetSelectValues = [];
 				this.actionSheetCurrentItem = item;
@@ -317,7 +414,9 @@
 						this.actionSheetSelectValues.push(value);
 					}
 				}
-
+				this.showFilter = item.data.length > 15;
+				let height = (item.data.length + 1 + (this.showFilter ? 1 : 0)) * 50;
+				this.popupHeight = height > this.maxHeight ? this.maxHeight : height;
 				this.actionSheetModel = true;
 			},
 			actionClick(item) {
@@ -396,15 +495,62 @@
 				})
 				return _textArr.join(",");
 			},
+			getAllParentId(id, data) {
+				if (id === null || id === '' || id === undefined) {
+					return []
+				}
+				if (data.some((x) => {
+						return typeof(x.id) == 'string'
+					})) {
+					id = id + '';
+				} else {
+					id = id * 1;
+				}
+				let ids = [id];
+
+				for (let index = 0; index < ids.length; index++) {
+					var node = data.find((x) => {
+						return x.id === ids[index]
+					});
+					if (!node || (node.parentId === null && node.parentId === undefined)) {
+						return ids;
+					}
+					if (data.some(x => {
+							return x.id === node.parentId
+						})) {
+						ids.push(node.parentId);
+					}
+				}
+
+				return ids.reverse();
+			},
+			getCascaderNames(value, item) {
+				let ids = this.getAllParentId(value, item.data);
+				let names = [];
+				for (let i = 0; i < ids.length; i++) {
+					let obj = item.data.find(x => {
+						return x.id === ids[i]
+					});
+					if (obj) {
+						names.push(obj.value || obj.name)
+					} else {
+						names.push(ids[i])
+					}
+				}
+				return names.join('/');
+			},
 			formatDicValue(item) {
-				var value = this.inFormFields[item.field];
+				let value = this.inFormFields[item.field];
 				if (this.base.isEmpty(value)) {
 					return '';
+				}
+				if (item.type == 'cascader') {
+					return this.getCascaderNames(value, item);
 				}
 				if (this.isMultiSelect(item)) {
 					return this.formatDicValueList(item);
 				}
-				var _kv = item.data.find(x => {
+				let _kv = item.data.find(x => {
 					return x.key + '' == value + ''
 				});
 				if (!_kv) {
@@ -617,6 +763,31 @@
 			},
 			extraClick(item, inFormFields) {
 				this.$emit('extraClick', item, inFormFields)
+			},
+			showCascaderSheet(item) {
+				this.$refs[item.field][0].show();
+			},
+			onCitySelect(res) {
+				//res数据源包括已选省市区与省市区code
+				console.log(res);
+				this.lotusAddressData.visible = res.visible; //visible为显示与关闭组件标识true显示false隐藏
+				//res.isChose = 1省市区已选 res.isChose = 0;未选
+				if (res.isChose) {
+					this.lotusAddressData.provinceName = res.province; //省
+					this.lotusAddressData.cityName = res.city; //市
+					this.lotusAddressData.townName = res.town; //区
+					this.inFormFields[this.cityItem.field] = res.province + ',' + res.city + ',' + res.town
+					//this.region = `${res.province}${res.city}${res.town}`; //region为已选的省市区的值
+				}
+			},
+			showCitySheet(item) {
+
+				this.cityItem = item;
+				const arr = (this.inFormFields[item.field] || '').split(',');
+				this.lotusAddressData.provinceName = arr[0] || ''; //省
+				this.lotusAddressData.cityName = arr[1] || ''; //市
+				this.lotusAddressData.townName = arr[2] || ''; //区
+				this.lotusAddressData.visible = true;
 			}
 		},
 		// #ifdef MP-WEIXIN
@@ -702,7 +873,7 @@
 			// height: 0;
 			// overflow: scroll;
 			.vol-action-sheet-select-item {
-				border-bottom: 1px solid rgb(243 243 243);
+				border-bottom: 1px solid rgb(247 247 247);
 				padding: 26rpx;
 				text-align: center;
 				position: relative;
@@ -742,7 +913,7 @@
 		}
 
 		.f-form-content-select {
-			    text-align: right;
+			text-align: right;
 			display: flex;
 		}
 
@@ -791,5 +962,9 @@
 		font-weight: bold;
 
 		.f-form-group-content {}
+	}
+
+	/deep/ .u-icon {
+		display: inline-flex;
 	}
 </style>

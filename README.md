@@ -24,6 +24,7 @@
 ## 链接
 
 ## [vol框架视频](https://www.cctalk.com/m/group/90268531)
+## [iMES工厂管家](https://imes.625sc.com/)
 ## [NET视频教程(微软MVP-ACE录制)](https://space.bilibili.com/525836469)
 ## [元讯趣编程交流社区](https://www.qubcedu.com/)
 
@@ -112,8 +113,9 @@ excel导入整个页面都由代码生成器生成，导入的字段、字段是
  - 框架内置了大量的通用组件可直接使用,并内置了基于本框架定制开发的代码生成器，尽量避免重复性代码编写。
  - 框架不仅仅是快速开发，更多的是倾向于业务代码扩展的编写与代码规范。
  - 如果有什么问题或建议，提issue或加QQ：283591387
- - QQ1群：45221949
+
  - QQ2群：913189178
+ - QQ3群：743852316
  - 
  - vue3地址：http://www.volcore.xyz
  - vue2地址：http://v2.volcore.xyz

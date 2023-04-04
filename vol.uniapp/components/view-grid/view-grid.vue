@@ -1,14 +1,26 @@
 <template>
-	<view class="view-grid" v-if="isCreated">
+	<view class="view-grid">
+		<view class="fx-height"></view>
+		<view class="fx-header">
+			<view class="fx-header-total">
+				<text>共</text><text class="fx-header-row-total">{{rowTotal}}</text><text>条数据</text>
+			</view>
+			<view @click="griFabBtnClick(btn)" v-if="btn.hidden===false||btn.hidden===undefined" class="btn-item"
+				v-for="(btn,index) in fabButtons" :key="index">
+				<u-icon :name="btn.icon" :size="btn.size||18"></u-icon>
+				<view>{{btn.name}}</view>
+			</view>
+		</view>
 		<slot name="gridHeader"></slot>
 		<!-- 	表格数据 -->
-		<vol-table :class="[className]" :url="tableUrl" @cellClick="gridCellClick" @rowButtons="getRowButtons"
-			@rowButtonClick="gridRowButtonClick" :rowClick="gridRowClick" :defaultLoadPage="load"
-			@loadBefore="loadGridTableBefore" :index="rowIndex" @loadAfter="loadGridTableAfter" ref="table"
-			:direction="direction" :titleField="titleField" :height="height" @formatter="cellFormatter"
-			:columns.sync="columns" :textInline="textInline">
-			<!-- 			<view style="height: 50rpx;"></view> -->
-			<!-- 		<view class="vol-table-title-buttons" slot="title">
+		<view class="view-grid-list">
+			<vol-table v-if="isCreated" :class="[className]" :url="tableUrl" @cellClick="gridCellClick"
+				@rowButtons="getRowButtons" @rowButtonClick="gridRowButtonClick" @rowClick="gridRowClick"
+				:defaultLoadPage="load" @loadBefore="loadGridTableBefore" :index="rowIndex"
+				@loadAfter="loadGridTableAfter" ref="table" :direction="direction" :titleField="titleField"
+				:height="height" @formatter="cellFormatter" :columns.sync="columns" :textInline="textInline">
+				<!-- 			<view style="height: 50rpx;"></view> -->
+				<!-- 		<view class="vol-table-title-buttons" slot="title">
 				<view @click.native.stop="gridRowClick()"  class="vol-table-title-buttons-del">
 					<u-icon size="20" color="#e64340" name="trash"></u-icon>
 				</view>
@@ -16,8 +28,9 @@
 					<u-icon size="20" name="edit-pen"></u-icon>
 				</view>
 			</view> -->
-		</vol-table>
-		<slot name="gridFooter"></slot>
+			</vol-table>
+			<slot name="gridFooter"></slot>
+		</view>
 		<!-- 		搜索 -->
 		<u-popup @touchmove.prevent :zIndex="999999" :show="searchModel" @close="searchModel=false">
 			<view style="background: #f7f7f7;" class="vol-action-sheet-select-container"
@@ -95,7 +108,8 @@
 				</view>
 				<slot name="modelHeader"></slot>
 				<view class="vol-action-sheet-select-content">
-					<vol-form :load-key="false" @onChange="editGirdFormOnChange" ref="form" @extraClick="gridExtraClick"
+					<vol-form @input-confirm="inputConfirm" :labelWidth="labelWidth" :load-key="false"
+						@onChange="editGirdFormOnChange" ref="form" @extraClick="gridExtraClick"
 						:form-options.sync="editFormOptions" :formFields.sync="editFormFields">
 					</vol-form>
 				</view>
@@ -114,17 +128,17 @@
 			</view>
 		</u-popup>
 		<!-- 	↑↓ 表格排序，查询最后面增加一个排序字段选择-->
-		<view class="fab-buttons">
+		<!-- 	<view class="fab-buttons">
 			<view class="icon-item" v-show="showFabButons" v-for="(btn,index) in fabButtons" :key="index"
 				style="background-color: #ffff;">
-				<!--这里小程序上有问题 	 -->
+			
 				<u-icon :color="btn.color" @click="griFabBtnClick(btn)" :name="btn.icon" size="20"></u-icon>
 			</view>
-			<!-- 		浮动控制按钮 -->
+		
 			<view class="switch-btn" v-show="showButtons" @click="showFabButons=!showFabButons">
 				<u-icon color="#1890FF" name="list-dot" size="20"></u-icon>
 			</view>
-		</view>
+		</view> -->
 		<view class="grid-u-model">
 			<u-modal :show="showDel" cancelText="取消" :showCancelButton="true" :showConfirmButton="true"
 				@cancel="cancelDel" @confirm="confirmDel" title="警告">
@@ -135,7 +149,6 @@
 </template>
 
 <script>
-	let _$this;
 	export default {
 		name: "view-grid",
 		props: {
@@ -163,6 +176,7 @@
 		},
 		data() {
 			return {
+				rowTotal: 0,
 				isWx: false,
 				className: 'vol-table-888888',
 				rowIndex: false, //是否显示table的行号
@@ -175,7 +189,7 @@
 				currentRow: {}, //当前编辑的行
 				maxHeight: 0,
 				model: false, //新建编辑弹出框
-				showFabButons: false,
+				showFabButons: true,
 				showButtons: true, //是否显示浮动按钮
 				textInline: true, //超出是否换行显示
 				columns: this.options.columns,
@@ -194,7 +208,8 @@
 				tableUrl: "", //table加载的url地址
 				tableAction: "", //指定表名的权限
 				showDel: false,
-				isCreated: false
+				isCreated: false,
+				labelWidth: 80 //编辑弹出框表单标签的宽度
 			}
 		},
 		methods: {
@@ -205,32 +220,32 @@
 				this.onInited();
 			},
 			cellFormatter(row, column, index, callback) {
-				if (_$this.formatter) {
-					return callback(_$this.formatter(row, column, index));
+				if (this.formatter) {
+					return callback(this.formatter(row, column, index));
 				}
 				return callback(row[column.field]);
 			},
 			gridRowClick(index, row, columns) {
-				_$this.currentRow = row;
-				_$this.currentAction = 'Update';
-				_$this.hiddenDelButton(false)
+				this.currentRow = row;
+				this.currentAction = 'Update';
+				this.hiddenDelButton(false)
 				//this.editFormFields.Name=Math.random();
-				if (_$this.$refs.form) {
-					_$this.$refs.form.reset(row);
+				if (this.$refs.form) {
+					this.$refs.form.reset(row);
 				} else {
-					_$this.resetEditForm(row)
+					this.resetEditForm(row)
 				}
 
 				// Object.assign(this.editFormFields, row);
-				if (_$this.rowClick && !_$this.rowClick(index, row, columns)) {
+				if (this.rowClick && !this.rowClick(index, row, columns)) {
 					return;
 				};
-				if (_$this.modelOpenBefore(row) && _$this.modelOpenAfter(row)) {
-					_$this.model = true;
+				if (this.modelOpenBefore(row) && this.modelOpenAfter(row)) {
+					this.model = true;
 				}
 			},
 			gridCellClick(index, row, column) {
-				if (_$this.cellClick && !_$this.cellClick(index, row, column)) {
+				if (this.cellClick && !this.cellClick(index, row, column)) {
 					return;
 				};
 			},
@@ -336,7 +351,7 @@
 					}
 					let displayType = this.getSearchItem(key);
 					//联级只保留选中节点的最后一个值
-					if (displayType == "cascader") {
+					if (displayType == "cascader" && Array.isArray(value)) {
 						//查询下面所有的子节点，如：选中的是父节点，应该查询下面所有的节点数据--待完
 						value = value.length ? (value[value.length - 1] + "") : "";
 					}
@@ -384,6 +399,7 @@
 				callback(true)
 			},
 			loadGridTableAfter(data, callback) { //查询后
+				this.rowTotal = data.total;
 				if (this.searchAfter && !this.searchAfter(data.rows, data)) {
 					return callback(false);
 				}
@@ -492,7 +508,7 @@
 						hidden: true,
 						type: 'error',
 						onClick: () => {
-							_$this.gridDel();
+							this.gridDel();
 						}
 					})
 				}
@@ -527,26 +543,32 @@
 				}
 				//table界面浮动按钮
 				let fabButtons = [{
-					icon: "search",
-					value: "search",
-					hidden: false,
-					color: 'rgb(7 185 14)',
-					onClick: () => {
-						this.showSearch();
-					}
-				}, {
 					icon: "reload", //刷新
 					value: "search",
+					name: "刷新",
+					size: '18',
 					hidden: false,
 					color: '#009688',
 					onClick: () => {
 						this.refresh();
 					}
+				}, {
+					icon: "search",
+					value: "search",
+					name: "查询",
+					hidden: false,
+					size: '20',
+					color: 'rgb(7 185 14)',
+					onClick: () => {
+						this.showSearch();
+					}
 				}]
 				if (_permission.indexOf("Add") != -1) {
-					fabButtons.push({
+					fabButtons.unshift({
 						icon: "plus", //添加
 						hidden: false,
+						name: "添加",
+						size: '17',
 						color: 'rgb(2, 171, 255)',
 						onClick: () => {
 							this.gridAdd();
@@ -647,17 +669,21 @@
 			},
 			gridExtraClick(option, fields) {
 				this.extraClick && this.extraClick(option, fields);
+			},
+			inputConfirm(field, e) { //input回车事件
+				console.log(field)
 			}
 		},
 		async created() {
+			this.initSearchFormDateRange();
 			await this.initPermission();
 			this.isCreated = true;
-			_$this = this;
-			uni.getSystemInfo({
-				success: function(res) {
-					_$this.height = res.windowHeight - 10;
-				}
-			});
+			let _$this = this;
+			// uni.getSystemInfo({
+			// 	success: function(res) {
+			// 		_$this.height = res.windowHeight - 10;
+			// 	}
+			// });
 			this.titleField = (this.columns.find(x => {
 				return x.link
 			}) || {}).field;
@@ -681,7 +707,7 @@
 					Object.assign(_$this, extend.methods)
 				}
 			}
-			this.initSearchFormDateRange();
+
 			if (!this.isWx) {
 				this.onInited();
 				this.initSource();
@@ -692,8 +718,28 @@
 				this.onInited();
 				this.initSource();
 			}
+			if (!this.height || this.height < 0) {
+				uni.getSystemInfo({
+					success: (resu) => {
+						var view = uni.createSelectorQuery().in(this).select(".view-grid-list");
+						view.boundingClientRect().exec(res => {
+							let h = 0;
+							if (this.columns.some(x => {
+									return x.summary
+								})) {
+								h = 49
+							}
+							this.height = resu.windowHeight - res[0].top - h;
+							// - (this.direction ==
+							// 	'list' ?
+							// 	0 : 52)
+							console.log(this.height)
+						})
+					}
+				})
+			}
 			uni.getSystemInfo({
-				success: (res)=> {
+				success: (res) => {
 					this.maxHeight = res.screenHeight * 0.82;
 				}
 			});
@@ -716,7 +762,49 @@
 	.view-grid {
 		height: 100%;
 		overflow: hidden;
+		background: #f9f9f9;
+
+		.fx-height {
+			height: 70rpx;
+
+		}
+
+
+
 		// background: #fbfbfb;
+		.fx-header {
+			padding: 0 20rpx;
+			box-sizing: border-box;
+			top: 0;
+			position: absolute;
+			display: flex;
+			width: 100%;
+			height: 70rpx;
+			z-index: 99;
+			background: #f7f7f7;
+			align-items: center;
+
+			.btn-item {
+				height: 100%;
+				align-items: center;
+				display: flex;
+				font-size: 28rpx;
+				margin-left: 18rpx;
+			}
+		}
+
+		.fx-header-total {
+			flex: 1;
+			font-size: 28rpx;
+			color: #555;
+			box-sizing: border-box;
+
+			.fx-header-row-total {
+				font-weight: bolder;
+				font-size: 30rpx;
+				margin: 0 6rpx;
+			}
+		}
 	}
 
 	.vol-action-sheet-select-container {

@@ -6,19 +6,18 @@
 			<view class="grid-title">
 				<view class="grid-title-text">
 					<view class="grid-title-border"></view>
-				<view>	{{item.name}}</view>
+					<view> {{item.name}}</view>
 				</view>
 			</view>
 			<view class="grid-item" @click="gridClick(data.path)" v-for="(data,dindex) in item.data" :key="dindex">
 				<view class="grid-icon" :class="data.bg">
-					<u-icon color="#ffff" size="22" :name="data.icon"></u-icon>
+					<u-icon color="#ffff" size="26" :name="data.icon"></u-icon>
 				</view>
 				<view class="grid-text">
 					{{data.name}}
 				</view>
 			</view>
 		</view>
-		<vol-tabbar :index="2"></vol-tabbar>
 	</view>
 </template>
 
@@ -58,7 +57,7 @@
 					{
 						name: "表单",
 						data: [{
-							name: "基础表单",
+							name: "表单(级联)",
 							icon: "file-text",
 							bg: "color5",
 							path: "/pages/form/form2"
@@ -85,7 +84,7 @@
 							name: "地图地位",
 							icon: "map",
 							bg: "color4",
-							path: ""
+							path: "/pages/map/map"
 						}, {
 							name: "地图轨迹",
 							icon: "play-circle",
@@ -114,11 +113,7 @@
 				]
 			}
 		},
-		onShow() {
-			uni.hideTabBar({
-				animation: false
-			})
-		},
+		onShow() {},
 		methods: {
 			gridClick(path) {
 				if (!path) {
@@ -184,10 +179,13 @@
 			height: 80rpx;
 			background: #eee;
 			border-radius: 34rpx;
-			position: relative;
+			// position: relative;
 			left: 0;
 			right: 0;
 			margin: auto;
+			    justify-content: center;
+			    align-items: center;
+			    display: flex;
 		}
 
 		.color1 {
@@ -222,9 +220,5 @@
 <style scoped>
 	.grid-list /deep/ .u-icon {
 		flex-direction: column !important;
-		position: absolute;
-		top: 48%;
-		left: 50%;
-		transform: translate(-50%, -50%);
 	}
 </style>
